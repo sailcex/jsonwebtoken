@@ -14,7 +14,7 @@ jsonwebtoken = "9"
 serde = {version = "1.0", features = ["derive"] }
 ```
 
-The minimum required Rust version (MSRV) is specified in the `rust-version` field in this project's [Cargo.toml](Cargo.toml).
+The minimum required Rust version (MSRV) is 1.67.
 
 ## Algorithms
 This library currently supports the following:
@@ -146,6 +146,28 @@ let token = decode::<Claims>(&token, &DecodingKey::from_rsa_components(jwk["n"],
 If your key is in PEM format, it is better performance wise to generate the `DecodingKey` once in a `lazy_static` or
 something similar and reuse it.
 
+### Encoding and decoding JWS
+
+JWS is handled the same way as JWT, but using `encode_jws` and `decode_jws`:
+
+```rust
+let encoded = encode_jws(&Header::default(), &my_claims, &EncodingKey::from_secret("secret".as_ref()))?;
+my_claims = decode_jws(&encoded, &DecodingKey::from_secret("secret".as_ref()), &Validation::default())?.claims;
+```
+
+`encode_jws` returns a `Jws<C>` struct which can be placed in other structs or serialized/deserialized from JSON directly.
+
+The generic parameter in `Jws<C>` indicates the claims type and prevents accidentally encoding or decoding the wrong claims type
+when the Jws is nested in another struct.
+
+### JWK Thumbprints
+
+If you have a JWK object, you can generate a thumbprint like
+
+```
+let tp = my_jwk.thumbprint(&jsonwebtoken::DIGEST_SHA256);
+```
+
 ### Convert SEC1 private key to PKCS8
 `jsonwebtoken` currently only supports PKCS8 format for private EC keys. If your key has `BEGIN EC PRIVATE KEY` at the top,
 this is a SEC1 type and can be converted to PKCS8 like so:
@@ -159,8 +181,6 @@ openssl pkcs8 -topk8 -nocrypt -in sec1.pem -out pkcs8.pem
 This library automatically validates the `exp` claim, and `nbf` is validated if present. You can also validate the `sub`, `iss`, and `aud` but
 those require setting the expected values in the `Validation` struct. In the case of `aud`, if there is a value set in the token but
 not in the `Validation`, the token will be rejected.
-
-Validation is only made on present fields in the claims. It is possible to define the required claims, hence verifying that a JWT has a value for each of these claims before it is considered for validation. The required claims can be set in the `Validation` struct. The default option requires the `exp` claim to be present.
 
 Since validating time fields is always a bit tricky due to clock skew,
 you can add some leeway to the `iat`, `exp`, and `nbf` validation by setting the `leeway` field.
