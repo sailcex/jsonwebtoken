@@ -1,5 +1,9 @@
 # Changelog
 
+## 9.4.0
+
+- Changes to support ACME, including JWS Keats#359(https://github.com/Keats/jsonwebtoken/pull/359)
+
 ## 9.3.1 (2024-02-06)
 
 - Update base64
